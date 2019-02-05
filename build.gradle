@@ -1,0 +1,20 @@
+plugins {
+    id 'java'
+}
+
+group 'org.koet'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    compile group: 'com.opencsv', name: 'opencsv', version: '4.4'
+    compile group: 'org.jsoup', name: 'jsoup', version: '1.11.3'
+    compile group: 'commons-io', name: 'commons-io', version: '2.6'
+    compile group: 'org.apache.tika', name: 'tika-langdetect', version: '1.20'
+}
