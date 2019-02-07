@@ -13,12 +13,18 @@ public class PatentHelper {
         return retArray;
     }
 
-	/*public HashMap<String, Integer> getPatPos() {
-		for (PatentFieldName item : PatentFieldName.values()) {
-			patPos.put(item.toString(), PatentFieldName.valueOf(item.toString()).ordinal());
-		}
-		return patPos;
-	}*/
+    public static HashMap<String, String> initCSVHash() {
+
+        // Aufbau eines Hashs in dem die Felder für jedes Patent gesoeichert
+        // werden sollen
+        HashMap<String, String> csvInitializedHash = new HashMap<>();
+        for (String fieldName : getPatenFields()) {
+            csvInitializedHash.put(fieldName, "");
+        }
+
+        return csvInitializedHash;
+
+    }
 
     public enum PatentFieldName {
 
@@ -26,4 +32,6 @@ public class PatentHelper {
         // das was vor description steht
         INVENTION_TITLE, ABSTRACT, DESCRIPTION, CLAIMS, FAMILY, ANMELDER_PERSON, ANMELDER_FIRMA, CPC,
     }
+
+
 }

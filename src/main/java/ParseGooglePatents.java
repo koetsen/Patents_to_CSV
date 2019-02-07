@@ -17,12 +17,12 @@ import org.jsoup.select.Elements;
 
 import com.opencsv.CSVWriter;
 
-public class ParsePatent implements CSV_Writable {
+public class ParseGooglePatents implements CSV_Writable {
 
     private Document doc;
     private Element knowledgeCard;
 
-    public ParsePatent(File fileName) {
+    public ParseGooglePatents(File fileName) {
         try {
             this.doc = Jsoup.parse(fileName, "UTF-8");
         } catch (IOException e) {
@@ -103,7 +103,7 @@ public class ParsePatent implements CSV_Writable {
             if (elem.text().isEmpty()) {
                 continue;
             }
-            returnList.add(cleanString(elem.text(), getAllRegex()));
+            returnList.add(elem.text());
         }
         return returnList;
     }
@@ -143,7 +143,9 @@ public class ParsePatent implements CSV_Writable {
 
     // TODO: Implement family download
     public ArrayList<String> getFamily() {
-        return null;
+
+        ArrayList<String> family = new ArrayList<>();
+        return family;
     }
 
     public ArrayList<String> getClaims() {
@@ -156,7 +158,7 @@ public class ParsePatent implements CSV_Writable {
              * stattfindet
              */
             if (!element.parentNode().attr("num").isEmpty()) {
-                claims.add(cleanString(element.text(), this.getAllRegex()));
+                claims.add(element.text());
             }
         }
         return claims;
@@ -182,40 +184,28 @@ public class ParsePatent implements CSV_Writable {
         return prioDate;
     }
 
-    private String cleanString(String input, List<Pattern> pattern) {
-
-        String returnString = input;
-        for (Pattern regex : pattern) {
-            returnString = regex.matcher(returnString).replaceAll("");
-        }
-        return returnString;
-    }
-
-    private ArrayList<Pattern> getAllRegex() {
-
-        // falls es mal mehr als ein regex geben sollte
-        ArrayList<Pattern> regexList = new ArrayList<>();
-        regexList.add(RegexPattern.PATTERN_BRACET_NUMBER());
-        regexList.add(RegexPattern.PATTERN_BRACES_ANY());
-        regexList.add(RegexPattern.PATTERN_DIGIT_POINT_START());
-
-        return regexList;
-    }
 
     public void writeCSV(CSVWriter wr) {
 
         HashMap<String, String> csvHash = getCVSHash_To_write();
 
-    }
+        String[] fieldnames = PatentHelper.getPatenFields();
 
+        String[] csvArray = new String[fieldnames.length];
+        for (int i = 0; i < fieldnames.length; i++) {
+            csvArray[i] = csvHash.get(fieldnames[i]);
+        }
+
+        wr.writeNext(csvArray);
+    }
 
     private HashMap<String, String> getCVSHash_To_write() {
 
         // einzelne Hashelement füllen
-        HashMap<String, String> csvHash = initCSVHash();
+        HashMap<String, String> csvHash = PatentHelper.initCSVHash();
 
-        for (PatentHelper.PatentFieldName patField :
-                PatentHelper.PatentFieldName.values()) {
+        String semicolon = "; ";
+        for (PatentHelper.PatentFieldName patField : PatentHelper.PatentFieldName.values()) {
 
             // Has
             switch (patField) {
@@ -226,34 +216,36 @@ public class ParsePatent implements CSV_Writable {
                     csvHash.put(patField.toString(), prioDateAsString());
                     break;
                 case TITLE:
-                    csvHash.put(patField.toString(), getTitle());
+                    csvHash.put(patField.toString(), getTitle().toLowerCase());
                     break;
                 case INVENTION_TITLE:
-                    csvHash.put(patField.toString(), getInventionTitle());
+                    csvHash.put(patField.toString(), getInventionTitle().toLowerCase());
                     break;
                 case ABSTRACT:
                     csvHash.put(patField.toString(), getAbstract());
                     break;
-
+                case DESCRIPTION:
+                    csvHash.put(patField.toString(), RegexPattern.getListAsConcatenatedString(this.getDescription()));
+                    break;
+                case CLAIMS:
+                    csvHash.put(patField.toString(), RegexPattern.getListAsConcatenatedString(this.getClaims()));
+                    break;
+                case FAMILY:
+                    csvHash.put(patField.toString(), String.join(semicolon, getFamily()));
+                    break;
+                case ANMELDER_PERSON:
+                    csvHash.put(patField.toString(), String.join(semicolon, getInventors()));
+                    break;
+                case ANMELDER_FIRMA:
+                    csvHash.put(patField.toString(), String.join(semicolon, getAssignee()));
+                    break;
+                case CPC:
+                    csvHash.put(patField.toString(), String.join(semicolon, getCPC().keySet()));
+                    break;
             }
         }
-
-
         return csvHash;
-
     }
 
-    private HashMap<String, String> initCSVHash() {
-
-        // Aufbau eines Hashs in dem die Felder für jedes Patent gesoeichert
-        // werden sollen
-        HashMap<String, String> csvInitializedHash = new HashMap<>();
-        for (String fieldName : PatentHelper.getPatenFields()) {
-            csvInitializedHash.put(fieldName, "");
-        }
-
-        return csvInitializedHash;
-
-    }
 
 }

@@ -1,7 +1,4 @@
-import java.io.File;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.Writer;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,6 +13,7 @@ import org.apache.commons.lang3.SystemUtils;
 import com.opencsv.CSVWriter;
 
 public class App {
+
 
     public static void main(String[] args) {
 
@@ -68,24 +66,22 @@ public class App {
                 String fileExtension = FilenameUtils.getExtension(inPath.toString());
                 if (fileExtension.equalsIgnoreCase("html")) {
 
-                    ParsePatent patParser = new ParsePatent(inPath.toFile());
+                    ParseGooglePatents patParser = new ParseGooglePatents(inPath.toFile());
+                    System.out.printf("Analyse %s\n", inPath.getFileName().toString());
                     csvOut(patParser, csvWriter);
 
                 } else if (fileExtension.equalsIgnoreCase("xml")) {
-                    // TODO: Implement this shit
-                }
 
+                    BufferedReader br = Files.newBufferedReader(inPath, StandardCharsets.UTF_8);
+                    XMLPatentsToCSV xml2csv = new XMLPatentsToCSV(br);
+                    csvOut(xml2csv, csvWriter);
+                }
             }
 
             csvWriter.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        /*for (PatentHelper.PatentFieldName patField :
-                PatentHelper.PatentFieldName.values()) {
-            System.out.println(patField);
-        }*/
 
     }
 
