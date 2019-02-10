@@ -18,7 +18,6 @@ import org.jsoup.select.Elements;
 import com.opencsv.CSVWriter;
 
 public class ParseGooglePatents implements CSV_Writable {
-
     private Document doc;
     private Element knowledgeCard;
 
@@ -126,7 +125,7 @@ public class ParseGooglePatents implements CSV_Writable {
 
         ArrayList<Element> prioDates = this.knowledgeCard.select(CssLocator.PRIORITY_DATE_CSS());
 
-        LocalDate prioDate = this.getDate(prioDates);
+        LocalDate prioDate = PatentHelper.getDate(prioDates);
         if (prioDate == null) {
             System.err.println("No Priority Date was found");
         }
@@ -164,26 +163,25 @@ public class ParseGooglePatents implements CSV_Writable {
         return claims;
     }
 
-    private LocalDate getDate(ArrayList<Element> prioDates) {
+	/*private LocalDate getDate(ArrayList<Element> prioDates) {
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
-        LocalDate prioDate = null;
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+		LocalDate prioDate = null;
 
-        /*
-         * Die List enthält normalerweise 2 Elemente; es soll aber nur das Element
-         * betrachtet werden, dass nicht das Attribut "data-keywords" enthält;
-         */
-        for (Element elem : prioDates) {
-            if (!elem.attr("data-keywords").isEmpty()) {
-                continue;
-            }
-            String rawTime = elem.attr("data-before");
-            prioDate = LocalDate.parse(rawTime, formatter);
-            return prioDate;
-        }
-        return prioDate;
-    }
 
+		 * Die List enthält normalerweise 2 Elemente; es soll aber nur das Element
+		 * betrachtet werden, dass nicht das Attribut "data-keywords" enthält;
+
+		for (Element elem : prioDates) {
+			if (!elem.attr("data-keywords").isEmpty()) {
+				continue;
+			}
+			String rawTime = elem.attr("data-before");
+			prioDate = LocalDate.parse(rawTime, formatter);
+			return prioDate;
+		}
+		return prioDate;
+	}*/
 
     public void writeCSV(CSVWriter wr) {
 
@@ -246,6 +244,5 @@ public class ParseGooglePatents implements CSV_Writable {
         }
         return csvHash;
     }
-
 
 }

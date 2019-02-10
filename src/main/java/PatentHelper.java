@@ -1,3 +1,8 @@
+import org.jsoup.nodes.Element;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class PatentHelper {
@@ -26,12 +31,37 @@ public class PatentHelper {
 
     }
 
+    public static LocalDate getDate(ArrayList<Element> prioDates) {
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+        LocalDate prioDate = null;
+
+        /*
+         * Die List enthält normalerweise 2 Elemente; es soll aber nur das Element
+         * betrachtet werden, dass nicht das Attribut "data-keywords" enthält;
+         */
+        for (Element elem : prioDates) {
+            if (!elem.attr("data-keywords").isEmpty()) {
+                continue;
+            }
+            String rawTime = elem.attr("data-before");
+            prioDate = LocalDate.parse(rawTime, formatter);
+            return prioDate;
+        }
+        return prioDate;
+    }
+
+    public static LocalDate getDate(String prioDate) {
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+        return LocalDate.parse(prioDate, formatter);
+    }
+
     public enum PatentFieldName {
 
         PATENT_NUMMER, PRIORITY_DATE, TITLE,
         // das was vor description steht
         INVENTION_TITLE, ABSTRACT, DESCRIPTION, CLAIMS, FAMILY, ANMELDER_PERSON, ANMELDER_FIRMA, CPC,
     }
-
 
 }

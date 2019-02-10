@@ -19,12 +19,16 @@ public class RegexPattern {
         return Pattern.compile("\\p{InGreek}+");
     }
 
-    static public Pattern SPACE() {
+    static public Pattern MULTIPLE_SPACE() {
         return Pattern.compile("\\p{Space}{2,}");
     }
 
     static public Pattern ONE_CHAR() {
         return Pattern.compile("\\s+\\w\\s+");
+    }
+
+    public static Pattern PATENT_NUMBER() {
+        return Pattern.compile("([A-Z]{2,})\\d+([A-Z]\\d){0,1}");
     }
 
     public static ArrayList<Pattern> getRegex() {
@@ -46,18 +50,27 @@ public class RegexPattern {
 
             // TODO: vielleicht chemische Formeln erkennen und drin lassen
             /*
-             * ersetzten von - durch singleSpace, damit durch Bindestriche getrennte Worte
+             * ersetzten von '-' durch singleSpace, damit durch Bindestriche getrennte Worte
              * nicht zusammenfallen
              */
             stringForArray = stringForArray.toLowerCase();
             stringForArray = stringForArray.replace("-", singleSpace);
             stringForArray = stringForArray.replace("°C", "");
-            returnString.append(cleanString(stringForArray, RegexPattern.getRegex()));
-            stringForArray = RegexPattern.SPACE().matcher(stringForArray).replaceAll(singleSpace);
+            //returnString.append(cleanString(stringForArray, RegexPattern.getRegex()));
+            stringForArray = cleanString(stringForArray, RegexPattern.getRegex());
+            stringForArray = RegexPattern.MULTIPLE_SPACE().matcher(stringForArray).replaceAll(singleSpace);
             stringForArray = RegexPattern.ONE_CHAR().matcher(stringForArray).replaceAll(singleSpace);
+            returnString.append(stringForArray);
         }
 
         return returnString.toString();
+    }
+
+    public static String cleanInputString(String input) {
+
+        ArrayList<String> inStringList = new ArrayList<>();
+        inStringList.add(input);
+        return getListAsConcatenatedString(inStringList);
     }
 
     private static String cleanString(String input, List<Pattern> pattern) {
