@@ -1,3 +1,5 @@
+import org.apache.commons.text.StringEscapeUtils;
+
 import java.util.regex.Pattern;
 
 
@@ -31,6 +33,11 @@ public class RegexPattern {
         return Pattern.compile("([A-Z]{2,})\\d+([A-Z]\\d){0,1}");
     }
 
+    public static Pattern WHITESPACE_AT_START() {
+        return Pattern.compile("^\\s+");
+    }
+
+
     public static ArrayList<Pattern> getRegex() {
 
         ArrayList<Pattern> regexList = new ArrayList<>();
@@ -46,28 +53,30 @@ public class RegexPattern {
         StringBuilder returnString = new StringBuilder();
 
         for (String inString : strList) {
-            String stringForArray = inString;
 
             // TODO: vielleicht chemische Formeln erkennen und drin lassen
             /*
              * ersetzten von '-' durch singleSpace, damit durch Bindestriche getrennte Worte
              * nicht zusammenfallen
              */
-            stringForArray = stringForArray.toLowerCase();
-            stringForArray = stringForArray.replace("-", singleSpace);
-            stringForArray = stringForArray.replace("°C", "");
-            //returnString.append(cleanString(stringForArray, RegexPattern.getRegex()));
-            stringForArray = cleanString(stringForArray, RegexPattern.getRegex());
-            stringForArray = RegexPattern.MULTIPLE_SPACE().matcher(stringForArray).replaceAll(singleSpace);
-            stringForArray = RegexPattern.ONE_CHAR().matcher(stringForArray).replaceAll(singleSpace);
-            returnString.append(stringForArray);
+            inString = StringEscapeUtils.unescapeXml(inString);
+            inString = inString.trim();
+            inString = inString.toLowerCase();
+            inString = inString.replace("-", singleSpace);
+            inString = inString.replace("°C", "");
+            inString = inString.replace("°", "");
+            inString = cleanString(inString, RegexPattern.getRegex());
+            inString = RegexPattern.MULTIPLE_SPACE().matcher(inString).replaceAll(singleSpace);
+            inString = RegexPattern.ONE_CHAR().matcher(inString).replaceAll(singleSpace);
+            returnString.append(inString);
         }
-
         return returnString.toString();
     }
 
     public static String cleanInputString(String input) {
 
+        /* notwendig, da "getListAsConcatenatedString"
+       eine ArrayList haben möchte */
         ArrayList<String> inStringList = new ArrayList<>();
         inStringList.add(input);
         return getListAsConcatenatedString(inStringList);

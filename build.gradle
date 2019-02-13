@@ -17,4 +17,8 @@ dependencies {
     compile group: 'org.jsoup', name: 'jsoup', version: '1.11.3'
     compile group: 'commons-io', name: 'commons-io', version: '2.6'
     compile group: 'org.apache.tika', name: 'tika-langdetect', version: '1.20'
+    compile group: 'org.apache.tika', name: 'tika-core', version: '1.20'
+    compile group: 'org.apache.tika', name: 'tika-parsers', version: '1.20'
+    testCompile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.25'
+
 }

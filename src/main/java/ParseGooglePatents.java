@@ -1,23 +1,17 @@
-import java.io.File;
-import java.io.IOException;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
-
+import com.opencsv.CSVWriter;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import com.opencsv.CSVWriter;
+import java.io.File;
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
 public class ParseGooglePatents implements CSV_Writable {
+
     private Document doc;
     private Element knowledgeCard;
 
@@ -163,37 +157,25 @@ public class ParseGooglePatents implements CSV_Writable {
         return claims;
     }
 
-	/*private LocalDate getDate(ArrayList<Element> prioDates) {
-
-		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
-		LocalDate prioDate = null;
-
-
-		 * Die List enthält normalerweise 2 Elemente; es soll aber nur das Element
-		 * betrachtet werden, dass nicht das Attribut "data-keywords" enthält;
-
-		for (Element elem : prioDates) {
-			if (!elem.attr("data-keywords").isEmpty()) {
-				continue;
-			}
-			String rawTime = elem.attr("data-before");
-			prioDate = LocalDate.parse(rawTime, formatter);
-			return prioDate;
-		}
-		return prioDate;
-	}*/
+    /*
+     * private LocalDate getDate(ArrayList<Element> prioDates) {
+     *
+     * DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+     * LocalDate prioDate = null;
+     *
+     *
+     * Die List enthält normalerweise 2 Elemente; es soll aber nur das Element
+     * betrachtet werden, dass nicht das Attribut "data-keywords" enthält;
+     *
+     * for (Element elem : prioDates) { if (!elem.attr("data-keywords").isEmpty()) {
+     * continue; } String rawTime = elem.attr("data-before"); prioDate =
+     * LocalDate.parse(rawTime, formatter); return prioDate; } return prioDate; }
+     */
 
     public void writeCSV(CSVWriter wr) {
 
         HashMap<String, String> csvHash = getCVSHash_To_write();
-
-        String[] fieldnames = PatentHelper.getPatenFields();
-
-        String[] csvArray = new String[fieldnames.length];
-        for (int i = 0; i < fieldnames.length; i++) {
-            csvArray[i] = csvHash.get(fieldnames[i]);
-        }
-
+        String[] csvArray = PatentHelper.getArrayForOutput(csvHash);
         wr.writeNext(csvArray);
     }
 

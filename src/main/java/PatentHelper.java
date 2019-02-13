@@ -1,13 +1,21 @@
+import org.apache.tika.parser.txt.CharsetDetector;
+import org.apache.tika.parser.txt.CharsetMatch;
 import org.jsoup.nodes.Element;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.regex.Matcher;
+
 
 public class PatentHelper {
 
-    private HashMap<String, Integer> patPos = null;
+
 
     public static String[] getPatenFields() {
 
@@ -48,13 +56,14 @@ public class PatentHelper {
             prioDate = LocalDate.parse(rawTime, formatter);
             return prioDate;
         }
-        return prioDate;
+        return null;
     }
 
     public static LocalDate getDate(String prioDate) {
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
-        return LocalDate.parse(prioDate, formatter);
+        //DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+        //return LocalDate.parse(prioDate.trim(), formatter);
+        return LocalDate.parse(prioDate.trim(), DateTimeFormatter.ISO_DATE_TIME);
     }
 
     public enum PatentFieldName {
@@ -64,4 +73,45 @@ public class PatentHelper {
         INVENTION_TITLE, ABSTRACT, DESCRIPTION, CLAIMS, FAMILY, ANMELDER_PERSON, ANMELDER_FIRMA, CPC,
     }
 
+    public static String[] getArrayForOutput(HashMap<String, String> inHash) {
+
+        String[] fieldnames = PatentHelper.getPatenFields();
+        String[] csvArray = new String[fieldnames.length];
+        for (int i = 0; i < fieldnames.length; i++) {
+            csvArray[i] = inHash.get(fieldnames[i]);
+        }
+
+        return csvArray;
+    }
+
+    public static boolean checkPatentNumber(String documentNumber) {
+
+        Matcher match = RegexPattern.PATENT_NUMBER().matcher(documentNumber);
+        if (!match.matches()) {
+            String errorString = String.format("%s scheint eine komische Patentnummer zu sein!", documentNumber);
+            System.err.println(errorString);
+            return false;
+        }
+        return true;
+    }
+
+    public static Charset getCharsetFromFile(Path inPath) {
+
+        byte[] fis = null;
+        try {
+            fis = Files.readAllBytes(inPath);
+        } catch (IOException e) {
+            System.out.println(String.format("Konnte Datei %s nicht in ByteSream umwandel", inPath.toString()));
+            return Charset.defaultCharset();
+        }
+        CharsetDetector detector = new CharsetDetector();
+        detector.setText(fis);
+        CharsetMatch charsetMatch = detector.detect();
+        if (charsetMatch != null) {
+            return Charset.forName(charsetMatch.getName());
+        } else {
+            System.out.println(String.format("Kein Charset für %s gefunden", inPath.toString()));
+            return Charset.defaultCharset();
+        }
+    }
 }
