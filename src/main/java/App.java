@@ -16,20 +16,19 @@ public class App {
 
 
     public static void main(String[] args) {
-
         ArrayList<String> parentDirs = new ArrayList<>();
         ArrayList<Path> inFiles = new ArrayList<>();
         Writer csvOut;
         String outFile = "";
 
         if (SystemUtils.IS_OS_LINUX) {
-           // parentDirs.add("/home/koet/programmieren/patente/xml/xml-Patente");
+            parentDirs.add("/home/koet/programmieren/patente");
             parentDirs.add("/home/koet/programmieren/patente/xml/patente_aufbereitet");
             outFile = "/home/koet/programmieren/patente/xml/patenCSV.csv";
         }
         if (SystemUtils.IS_OS_WINDOWS) {
             parentDirs.add("C:\\zeug\\Programmieren\\xml-Patente\\patente_aufbereitet");
-           // parentDirs.add("C:\\zeug\\Programmieren\\patente");
+            parentDirs.add("C:\\zeug\\Programmieren\\patente");
             outFile = "C:\\zeug\\Programmieren\\csv\\patenCSV.csv";
         }
 
@@ -41,7 +40,8 @@ public class App {
         FilenameFilter patents = (File dir, String file) -> {
             if (file.endsWith(".xml")) {
                 return true;
-            } else return file.endsWith(".html");
+            } else
+                return file.endsWith(".html");
         };
 
         // get Infiles
@@ -63,24 +63,21 @@ public class App {
                 String fileExtension = FilenameUtils.getExtension(inPath.toString());
                 if (fileExtension.equalsIgnoreCase("html")) {
 
-                    /*
-                     * TODO: Ab hier wieder rein !! Nur fürs Debuggen auskommentiert!!
-                     *
-                     * ParseGooglePatents patParser = new ParseGooglePatents(inPath.toFile());
-                     * System.out.printf("Analyse %s\n", inPath.getFileName().toString());
-                     * csvOut(patParser, csvWriter);
-                     */
+                    System.out.printf("Bearbeite %s\n", inPath.getFileName().toString());
+                    ParseGooglePatents patParser = new ParseGooglePatents(inPath.toFile());
+
+                    csvOut(patParser, csvWriter);
+
                 } else if (fileExtension.equalsIgnoreCase("xml")) {
 
                     System.out.printf("Analyse %s\n", inPath.getFileName().toString());
                     BufferedReader br = Files.newBufferedReader(inPath, PatentHelper.getCharsetFromFile(inPath));
-
-                    // BufferedReader br = Files.newBufferedReader(inPath,
-                    // StandardCharsets.ISO_8859_1);
                     XMLPatentsToCSV xml2csv = new XMLPatentsToCSV(br);
                     csvOut(xml2csv, csvWriter);
                 }
             }
+
+            System.out.println("Fettich");
 
             csvWriter.close();
         } catch (IOException e) {

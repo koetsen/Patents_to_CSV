@@ -1,4 +1,5 @@
 import org.apache.commons.text.StringEscapeUtils;
+import org.jsoup.Jsoup;
 
 import java.util.regex.Pattern;
 
@@ -30,7 +31,7 @@ public class RegexPattern {
     }
 
     public static Pattern PATENT_NUMBER() {
-        return Pattern.compile("([A-Z]{2,})\\d+([A-Z]\\d){0,1}");
+        return Pattern.compile("([A-Z]{2,})\\d+([A-Z]\\d?){0,1}");
     }
 
     public static Pattern WHITESPACE_AT_START() {
@@ -60,6 +61,7 @@ public class RegexPattern {
              * nicht zusammenfallen
              */
             inString = StringEscapeUtils.unescapeXml(inString);
+            inString = Jsoup.parse(inString).text();
             inString = inString.trim();
             inString = inString.toLowerCase();
             inString = inString.replace("-", singleSpace);

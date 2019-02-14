@@ -157,20 +157,6 @@ public class ParseGooglePatents implements CSV_Writable {
         return claims;
     }
 
-    /*
-     * private LocalDate getDate(ArrayList<Element> prioDates) {
-     *
-     * DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
-     * LocalDate prioDate = null;
-     *
-     *
-     * Die List enthält normalerweise 2 Elemente; es soll aber nur das Element
-     * betrachtet werden, dass nicht das Attribut "data-keywords" enthält;
-     *
-     * for (Element elem : prioDates) { if (!elem.attr("data-keywords").isEmpty()) {
-     * continue; } String rawTime = elem.attr("data-before"); prioDate =
-     * LocalDate.parse(rawTime, formatter); return prioDate; } return prioDate; }
-     */
 
     public void writeCSV(CSVWriter wr) {
 
@@ -185,9 +171,8 @@ public class ParseGooglePatents implements CSV_Writable {
         HashMap<String, String> csvHash = PatentHelper.initCSVHash();
 
         String semicolon = "; ";
-        for (PatentHelper.PatentFieldName patField : PatentHelper.PatentFieldName.values()) {
-
-            // Has
+        // Has
+        for (PatentHelper.PatentFieldName patField : PatentHelper.PatentFieldName.values())
             switch (patField) {
                 case PATENT_NUMMER:
                     csvHash.put(patField.toString(), getPatentNumber());
@@ -222,8 +207,12 @@ public class ParseGooglePatents implements CSV_Writable {
                 case CPC:
                     csvHash.put(patField.toString(), String.join(semicolon, getCPC().keySet()));
                     break;
+                case LANGUAGE:
+                    String claims = RegexPattern.getListAsConcatenatedString(this.getClaims());
+                    String lang = PatentHelper.getLanguage(claims);
+                    csvHash.put(patField.toString(), lang);
+                    break;
             }
-        }
         return csvHash;
     }
 

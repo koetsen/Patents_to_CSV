@@ -1,7 +1,5 @@
 import com.opencsv.CSVWriter;
 import org.apache.commons.text.StringEscapeUtils;
-import org.apache.tika.langdetect.OptimaizeLangDetector;
-import org.apache.tika.language.detect.LanguageDetector;
 
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
@@ -11,17 +9,15 @@ import javax.xml.stream.events.Attribute;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 import java.io.Reader;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Set;
 
 
 public class XMLPatentsToCSV implements CSV_Writable {
 
 
-    private static LanguageDetector langDetector = new OptimaizeLangDetector().loadModels();
+    // private static LanguageDetector langDetector = new OptimaizeLangDetector().loadModels();
     private Reader infileReader;
     private CSVWriter csvWriter;
     // diese Elemente nach "HitlistXMLExportTable" leeren
@@ -39,7 +35,11 @@ public class XMLPatentsToCSV implements CSV_Writable {
 
     // die Attribute der description oder claim tags
     private String patentNum = "";
-    private String language = "";
+    private String tmpLanguage = "";
+
+    //language actually used
+    private String langOfDocumentUsed = "";
+    //private PatentHelper.Pat entFieldNamerecentElement;
     // bis hier alles löschen
 
     public XMLPatentsToCSV(Reader ifr) {
@@ -73,8 +73,6 @@ public class XMLPatentsToCSV implements CSV_Writable {
                         break;
 
                     case XMLStreamConstants.START_ELEMENT:
-                        //String bla = event.asStartElement().getName().getLocalPart();
-                        // this.setFlag(event.asStartElement().getName().getLocalPart());
                         this.setFlag(event.asStartElement());
                         break;
 
@@ -90,11 +88,10 @@ public class XMLPatentsToCSV implements CSV_Writable {
                         String endElement = event.asEndElement().getName().getLocalPart();
                         if (endElement.equals("HitlistXMLExportTable")) {
 
-                            // insert Patent Number
-                            //this.setPatenNumber();
                             String[] outArray = PatentHelper.getArrayForOutput(this.csvHash);
                             csvWriter.writeNext(outArray);
                             this.clearUpAll();
+                            break;
 
                         }
                         writeResultStringToCSVHash(endElement);
@@ -113,8 +110,6 @@ public class XMLPatentsToCSV implements CSV_Writable {
         }
     }
 
-
-
     private void clearUpAll() {
 
         this.recentElement = null;
@@ -124,7 +119,7 @@ public class XMLPatentsToCSV implements CSV_Writable {
         this.resultString.setLength(0);
         this.selectedPatentNum = "";
         this.patentNum = "";
-        this.language = "";
+        this.tmpLanguage = "";
     }
 
     private void setFlag(StartElement startElement) {
@@ -185,29 +180,28 @@ public class XMLPatentsToCSV implements CSV_Writable {
 
     private void setPatNrAndLang(StartElement startElement) {
 
-        if ((this.patentNum.isEmpty()) && (this.language.isEmpty())) {
-
+        if ((this.patentNum.isEmpty()) && (this.tmpLanguage.isEmpty())) {
 
             Iterator iter = startElement.getAttributes();
             while (iter.hasNext()) {
+
                 Attribute attr = (Attribute) iter.next();
                 switch (attr.getName().getLocalPart()) {
                     case "patentNr":
-                        PatentHelper.checkPatentNumber(attr.getValue());
+                        if (!PatentHelper.isPatentNumConsistent(attr.getValue())) {
+                            System.err.print("Method setPatNrAndLang: ");
+                            PatentHelper.outputErrorPatentNum(attr.getValue());
+                        }
                         this.patentNum = attr.getValue();
                         break;
                     case "lang":
-                        this.language = attr.getValue();
+                        this.tmpLanguage = attr.getValue();
                         break;
                 }
             }
         }
     }
 
-    private String getLanguage(String doc) {
-
-        return langDetector.detect(doc).getLanguage();
-    }
 
     private void writeResultStringToCSVHash(String endElement) {
 
@@ -218,7 +212,11 @@ public class XMLPatentsToCSV implements CSV_Writable {
                  * ohne die letzten beiden Ziffern, also z.B. ohne A2, B3 oder A1;
                  */
                 this.documentNumber = resultString.toString();
-                PatentHelper.checkPatentNumber(this.documentNumber);
+                if (!PatentHelper.isPatentNumConsistent(this.documentNumber)) {
+                    System.err.print("Method EndElement DocumentNumber ");
+                    PatentHelper.outputErrorPatentNum(this.documentNumber);
+                }
+                System.out.println("Working on: " + this.documentNumber);
                 break;
 
             case "Title":
@@ -232,8 +230,7 @@ public class XMLPatentsToCSV implements CSV_Writable {
                 break;
 
             case "PriorityDate":
-                LocalDate prioDate = PatentHelper.getDate(resultString.toString());
-                csvHash.put(PatentHelper.PatentFieldName.PRIORITY_DATE.toString(), prioDate.toString());
+                csvHash.put(PatentHelper.PatentFieldName.PRIORITY_DATE.toString(), PatentHelper.getDate(resultString.toString()));
                 break;
 
             case "LargestFamily":
@@ -248,6 +245,7 @@ public class XMLPatentsToCSV implements CSV_Writable {
             // Äußeres Element
             case "Description":
                 this.selectDescriptionOrClaim(PatentHelper.PatentFieldName.DESCRIPTION);
+                this.setPatentLang();
                 this.setPatenNumber();
                 this.cleanUpAfterDescrOrClaim();
                 break;
@@ -260,6 +258,7 @@ public class XMLPatentsToCSV implements CSV_Writable {
             // Äußeres Element
             case "Claims":
                 this.selectDescriptionOrClaim(PatentHelper.PatentFieldName.CLAIMS);
+                this.setPatentLang();
                 this.cleanUpAfterDescrOrClaim();
                 break;
 
@@ -282,15 +281,27 @@ public class XMLPatentsToCSV implements CSV_Writable {
         }
     }
 
-       private void setPatenNumber() {
+    private void setPatentLang() {
 
-       if(! this.selectedPatentNum.isEmpty()){
-           csvHash.put(PatentHelper.PatentFieldName.PATENT_NUMMER.toString(), this.selectedPatentNum);
-        } else if (! this.documentNumber.isEmpty()){
-           csvHash.put(PatentHelper.PatentFieldName.PATENT_NUMMER.toString(), this.documentNumber);
-       } else {
-           csvHash.put(PatentHelper.PatentFieldName.PATENT_NUMMER.toString(), "");
-       }
+        String langSet = this.csvHash.get(PatentHelper.PatentFieldName.PATENT_NUMMER.toString());
+        if (langSet == null){
+            this.csvHash.put(PatentHelper.PatentFieldName.PATENT_NUMMER.toString(), "");
+        }
+        if (!this.langOfDocumentUsed.isEmpty()){
+            this.csvHash.put(PatentHelper.PatentFieldName.PATENT_NUMMER.toString(), this.langOfDocumentUsed);
+        }
+
+    }
+
+    private void setPatenNumber() {
+
+        if (!this.selectedPatentNum.isEmpty()) {
+            csvHash.put(PatentHelper.PatentFieldName.PATENT_NUMMER.toString(), this.selectedPatentNum);
+        } else if (!this.documentNumber.isEmpty()) {
+            csvHash.put(PatentHelper.PatentFieldName.PATENT_NUMMER.toString(), this.documentNumber);
+        } else {
+            csvHash.put(PatentHelper.PatentFieldName.PATENT_NUMMER.toString(), "");
+        }
 
     }
 
@@ -318,7 +329,7 @@ public class XMLPatentsToCSV implements CSV_Writable {
          * 1. falls z.B. für den Bereich description schon eine Patentnummer ausgewählt
          * wurde, soll sie auch für die Claims benutzt werden.
          *
-         * 2. (documentNumber == patentNum) && (language == en) oder
+         * 2. (documentNumber == patentNum) && (tmpLanguage == en) oder
          *
          * 3. lang == "en" --> dann WO vor EP oder beliebige andere Nummer
          *
@@ -377,24 +388,26 @@ public class XMLPatentsToCSV implements CSV_Writable {
         for (String countyCode : matchingCodes) {
             for (String num : matchingNums) {
                 if (num.startsWith(countyCode)) {
+                    this.langOfDocumentUsed = descriptionOrClaim.get(num).get("lang");
+                    this.selectedPatentNum = num;
                     return descriptionOrClaim.get(num).get("doc");
                 }
             }
         }
 
-        // keine WO oder EP aber irgendwas auf englisch
-        Set<String> patNumsSet = descriptionOrClaim.keySet();
-        if (patNumsSet.size() > 0) {
-            // irgendein Element nehmen
-            for (String patentNum : patNumsSet) {
-                return descriptionOrClaim.get(patentNum).get("doc");
+        // keine WO oder EP aber irgendwas in der Sprache "tmpLanguage"
+        for (String docNum : matchingNums) {
+            if (language.equals(descriptionOrClaim.get(docNum).get("lang"))) {
+                this.langOfDocumentUsed = descriptionOrClaim.get(docNum).get("lang");
+                this.selectedPatentNum = docNum;
+                return descriptionOrClaim.get(docNum).get("doc");
             }
         }
-
         return "";
     }
 
     private void setDescriptionOrClaim(PatentHelper.PatentFieldName fieldName, String matchingDocument) {
+        //this.selectedPatentNum = matchingDocument;
         csvHash.put(fieldName.toString(), matchingDocument);
     }
 
@@ -410,7 +423,6 @@ public class XMLPatentsToCSV implements CSV_Writable {
         for (String num : descriptionOrClaim.keySet()) {
             if (num.startsWith(documentNumber)) {
                 matchingPatentNumbers.add(num);
-
             }
         }
 
@@ -418,6 +430,7 @@ public class XMLPatentsToCSV implements CSV_Writable {
         for (String num : matchingPatentNumbers) {
             String lang = descriptionOrClaim.get(num).get("lang");
             if (lang.equals("en")) {
+                this.langOfDocumentUsed = lang;
                 this.selectedPatentNum = num;
                 return descriptionOrClaim.get(num).get("doc");
             }
@@ -425,20 +438,22 @@ public class XMLPatentsToCSV implements CSV_Writable {
         return "";
     }
 
-
     private void saveDescriptionOrClaim() {
 
         HashMap<String, String> documentHash = new HashMap<>();
 
-        documentHash.put("lang", language);
+        documentHash.put("lang", tmpLanguage);
         String cleanedResult = RegexPattern.cleanInputString(resultString.toString());
         documentHash.put("doc", cleanedResult);
-        PatentHelper.checkPatentNumber(patentNum);
+        if (!PatentHelper.isPatentNumConsistent(this.patentNum)) {
+            System.err.print("Method saveDescriptionOrClaim: ");
+            PatentHelper.outputErrorPatentNum(this.patentNum);
+        }
 
         this.descriptionOrClaim.put(patentNum, documentHash);
         // Aufräumen
         this.patentNum = "";
-        this.language = "";
+        this.tmpLanguage = "";
 
     }
 
@@ -451,7 +466,7 @@ public class XMLPatentsToCSV implements CSV_Writable {
     private String getTitle(String rawTitle) {
 
         /*
-         * clean up raw title string and check for appropriate language of title
+         * clean up raw title string and check for appropriate tmpLanguage of title
          */
 
         ArrayList<String> titleList = cleanRawTitle(rawTitle);
@@ -459,7 +474,7 @@ public class XMLPatentsToCSV implements CSV_Writable {
         for (String lang : languages) {
             for (String raw : titleList) {
                 String title = StringEscapeUtils.unescapeXml(raw);
-                if (getLanguage(title).equals(lang)) {
+                if (PatentHelper.getLanguage(title).equals(lang)) {
                     return title;
                 }
             }
